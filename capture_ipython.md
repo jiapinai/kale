@@ -1,0 +1,101 @@
+---
+title: "Capturing python rich outputs in Rmd documents"
+output:
+  html_document:
+    df_print: paged
+---
+
+In the below we describe the result of the capture of
+
+- a png image
+- a javascript library (plotly)
+- a plotly graph (json and javascript)
+
+Capture requires an `InteractiveShell` class to be instanciated, cf. https://github.com/ipython/ipython/issues/11163. 
+
+Capture of matplotlib plots does not work for now.
+
+
+```{python version}
+import sys
+import IPython
+print({'python':sys.version, 'IPython':IPython.__version__})
+```
+
+```{python instanciate_interactive_shell}
+from IPython.core.interactiveshell import InteractiveShell
+InteractiveShell().instance()
+```
+
+
+```{python capture}
+from IPython.utils import capture
+
+def describe_content(content, truncate=80):
+    s = str(content)
+    return s[:truncate-3]+'...' if len(s)>truncate else s
+    
+def describe_capture(cap):
+    if len(cap.outputs)==0:
+        print('No output captured')
+    else:
+        for i, o in enumerate(cap.outputs):
+            types = ['{}={}'.format(t, describe_content(content)) for t, content in o.data.items()]            
+            print('data for output #{}:\n    {}'.format(i+1, '\n    '.join(types)))
+```
+
+# Capture PNG
+
+```{python capture_image}
+from IPython.display import Image, display
+with capture.capture_output() as cap:
+    display(Image(filename='image.png'))
+
+describe_capture(cap)
+```
+
+# Capture a matplotlib plot
+
+Not working - freezes execution.
+
+```{python capture_matplotlib}
+import pandas as pd
+
+with capture.capture_output() as cap:
+    df = pd.DataFrame({'a':[1,2,3], 'b':[5,4,6]})
+    #df.plot(kind='bar')
+    
+describe_capture(cap)
+```
+
+# Capture javascript
+
+```{python capture_plotly_js}
+import plotly
+with capture.capture_output() as cap:
+    plotly.offline.init_notebook_mode()
+  
+describe_capture(cap)
+```
+
+# Capture plotly plot
+
+```{python capture_plotly_plot}
+with capture.capture_output() as cap:
+    plotly.offline.iplot([plotly.graph_objs.Bar(y=[2,1,3])])
+  
+describe_capture(cap)
+```
+
+---
+
+---
+
+Could be the output widget content be captured?
+Output Widget: https://ipywidgets.readthedocs.io/en/latest/examples/Output%20Widget.html
+
+
+`ipython.utils.capture`: https://ipython.readthedocs.io/en/stable/api/generated/IPython.utils.capture.html
+
+
+Run a magic command from a script: https://stackoverflow.com/questions/10361206/how-to-run-an-ipython-magic-from-a-script-or-timing-a-python-script
